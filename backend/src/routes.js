@@ -1,6 +1,6 @@
 const express = require('express');
-//const crypto = require('crypto');
-//const connection = require('./database/connection');
+const { celebrate, Segments, Joi } = require('celebrate');
+
 const OngController = require('./controllers/OngController');
 const IncidentController = require('./controllers/IncidentController');
 const ProfileController = require('./controllers/ProfileController');
@@ -43,7 +43,18 @@ const routes = express.Router();
 
 
     //rota para inserir ONGs
-    routes.post('/ongs', OngController.create); 
+    //routes.post('/ongs', OngController.create); 
+    
+    //inserindo validações via celebrate
+    routes.post('/ongs', celebrate({
+        [Segments.BODY]: Joi.object().keys({
+            nome: Joi.string().required(),
+            email: Joi.string().required().email(),
+            whatsapp: Joi.string().required().min(10).max(11),
+            city: Joi.string().required(),
+            uf: Joi.string().required().length(2),
+        })
+    }), OngController.create); 
         
     //rota para listar ONGs
     routes.get('/ongs', OngController.index);     
@@ -52,12 +63,25 @@ const routes = express.Router();
     routes.post('/incidents', IncidentController.create); 
         
     //rota para listar incidents
-    routes.get('/incidents', IncidentController.index);     
+    routes.get('/incidents', celebrate({
+        [Segments.QUERY]: Joi.object().keys({
+            page: Joi.number()
+        })
+    }) , IncidentController.index);     
 
     //rota para deletar  incidents
-    routes.delete('/incidents/:id', IncidentController.delete);     
+    //obs = da erro se tentar deletar um id que nao existe!!!
+    routes.delete('/incidents/:id' , celebrate({
+        [Segments.PARAMS]: Joi.object().keys({
+            id: Joi.number().required(),
+        })
+    }) , IncidentController.delete);     
 
     //rota para listar incidents de uma ONG especifica
-    routes.get('/profile', ProfileController.index);     
+    routes.get('/profile', celebrate({
+        [Segments.HEADERS]: Joi.object({
+            authorization: Joi.string().required(),
+        }).unknown() //nao conheço todos os headers, entao eu ignoro eles !
+    }) , ProfileController.index);     
 
     module.exports = routes;
